@@ -44,11 +44,10 @@ leagues = [
     }
 ]
 
-# Load EPL data globally to reuse in multiple routes
-epl_data = pd.read_csv('data/EPL_data.csv')
-
 @app.route('/api/club/predict')
 def club_predict():
+    # Load EPL data globally to reuse in multiple routes
+    epl_data = pd.read_csv('data/EPL_data.csv')
     # Win probability
     teams_of_interest = []
     firstteam_choice = 3
@@ -95,8 +94,10 @@ def get_data_league():
 
 @app.route('/api/league/<int:league_id>/clubs')
 def get_data_clubs_by_leagueid(league_id):
+    # Load EPL data globally to reuse in multiple routes
+    epl_data = pd.read_csv('data/EPL_data.csv')
     # Filter clubs by the league_id
-    league_clubs = epl_data[epl_data["League_ID"] == league_id]
+    league_clubs = epl_data[epl_data["ID_Liga"] == league_id]
 
     if not league_clubs.empty:
         return jsonify(league_clubs.to_dict(orient='records'))
