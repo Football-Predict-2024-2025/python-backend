@@ -47,19 +47,33 @@ leagues = [
 
 @app.route('/api/club/predict')
 def club_predict():
-    epl_data = pd.read_csv('data/EPL_data.csv')
-    # Win probability
-    teams_of_interest = []
-    firstteam_choice = 3
-    secondteam_choice = 9
-    teams_of_interest.append(firstteam_choice)
-    teams_of_interest.append(secondteam_choice)
+    # Mendapatkan parameter liga dan id tim dari query string
+    league = 1
+    firstteam_choice = 1
+    secondteam_choice = 2
 
-    # Extract team names (assuming there is one unique club for each ID)
+    # Membaca data sesuai liga
+    if league == 1:
+        epl_data = pd.read_csv('data/EPL_data.csv')
+    elif league == 5:
+        epl_data = pd.read_csv('data/Bundesliga_data.csv')
+    elif league == 3:
+        epl_data = pd.read_csv('data/Serie_A_data.csv')
+    elif league == 4:
+        epl_data = pd.read_csv('data/League_1_data.csv')
+    elif league == 2:
+        epl_data = pd.read_csv('data/La_Liga_data.csv')
+    else:
+        return jsonify({'error': 'Invalid league'}), 400
+
+    # Tim yang dipilih
+    teams_of_interest = [firstteam_choice, secondteam_choice]
+
+    # Ekstrak nama klub
     teams = [epl_data[epl_data["ID_Club"] == firstteam_choice]["Club"].values[0],
              epl_data[epl_data["ID_Club"] == secondteam_choice]["Club"].values[0]]
 
-    # Extract the average points (AVG) for each team
+    # Ekstrak poin rata-rata (AVG) untuk masing-masing tim
     pts = [epl_data.loc[epl_data["ID_Club"] == firstteam_choice, "AVG"].values[0],
            epl_data.loc[epl_data["ID_Club"] == secondteam_choice, "AVG"].values[0]]
 
@@ -68,19 +82,19 @@ def club_predict():
         'PTS': pts
     }
 
-    # Create DataFrame
+    # Membuat DataFrame
     df = pd.DataFrame(data)
 
-    # Calculate total points
+    # Menghitung total poin
     total_pts = df['PTS'].sum()
 
-    # Calculate win probabilities
+    # Menghitung probabilitas menang
     df['Win_Probability'] = df['PTS'] / total_pts * 100
 
-    # Format win probabilities as integers with a percent sign
+    # Format probabilitas menang menjadi integer dengan tanda persen
     df['Win_Probability'] = df['Win_Probability'].round(0).astype(int).astype(str) + '%'
 
-    # Return the results as JSON
+    # Return hasil dalam bentuk JSON
     return jsonify(df[['Club', 'Win_Probability']].to_dict(orient='records'))
 
 
