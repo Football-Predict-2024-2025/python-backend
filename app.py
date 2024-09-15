@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, url_for, request
 from flask_cors import CORS
+import pandas as pd
+from pandas import Interval
+
 
 app = Flask(__name__)
 CORS(app)
@@ -43,16 +46,43 @@ leagues = [
     }
 ]
 
-# Data klub berdasarkan ID liga
-clubs = {
-    1: [
-        {'position': 1, 'club_name': 'Manchester City', 'points': 91, 'played': 38, 'win': 28, 'draw': 7, 'lose': 3, 'goal_for': 96, 'goal_against': 34, 'goal_diff': 62},
-        {'position': 2, 'club_name': 'Arsenal', 'points': 89, 'played': 38, 'win': 28, 'draw': 5, 'lose': 5, 'goal_for': 91, 'goal_against': 29, 'goal_diff': 62},
-        {'position': 3, 'club_name': 'Liverpool', 'points': 82, 'played': 38, 'win': 24, 'draw': 10, 'lose': 4, 'goal_for': 86, 'goal_against': 41, 'goal_diff': 45},
-        {'position': 4, 'club_name': 'Aston Villa', 'points': 68, 'played': 38, 'win': 20, 'draw': 8, 'lose': 10, 'goal_for': 76, 'goal_against': 61, 'goal_diff': 15},
-        {'position': 5, 'club_name': 'Tottenham Hotspur', 'points': 66, 'played': 38, 'win': 19, 'draw': 6, 'lose': 12, 'goal_for': 74, 'goal_against': 61, 'goal_diff': 13},
-    ],
+#Data Club Masing-masing liga
+epl_data = pd.read_csv('data/EPL_data.csv')
+
+#win probability
+teams_of_interest = []
+firstteam_choice = 3
+secondteam_choice = 9
+teams_of_interest.append(firstteam_choice)
+teams_of_interest.append(secondteam_choice)
+# Extract team names (assuming there is one unique club for each ID)
+teams = [epl_data[epl_data["ID_Club"] == firstteam_choice]["Club"].values[0],
+         epl_data[epl_data["ID_Club"] == secondteam_choice]["Club"].values[0]]
+
+# Extract the average points (AVG) for each team
+pts = [epl_data.loc[epl_data["ID_Club"] == firstteam_choice, "AVG"].values[0],
+       epl_data.loc[epl_data["ID_Club"] == secondteam_choice, "AVG"].values[0]]
+
+data = {
+    'Club': teams,
+    'PTS': pts
 }
+
+# Create DataFrame
+df = pd.DataFrame(data)
+
+# Calculate total points
+total_pts = df['PTS'].sum()
+
+# Calculate win probabilities
+df['Win Probability'] = df['PTS'] / total_pts * 100
+
+# Format win probabilities as integers with a percent sign
+df['Win Probability'] = df['Win Probability'].round(0).astype(int).astype(str) + '%'
+
+# Display the results
+print(df[['Club', 'Win Probability']])
+
 
 @app.route('/api/league/get')
 def get_data_league():
@@ -64,8 +94,8 @@ def get_data_league():
 @app.route('/api/league/<int:league_id>/clubs')
 def get_data_clubs_by_leagueid(league_id):
     # Ambil klub berdasarkan ID liga
-    if league_id in clubs:
-        return jsonify(clubs[league_id])
+    if league_id in epl_data:
+        return jsonify(epl_data[league_id])
     else:
         return jsonify({'error': 'League not found'}), 404
 
