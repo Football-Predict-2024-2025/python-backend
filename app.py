@@ -45,57 +45,59 @@ leagues = [
 ]
 
 
-@app.route('/api/club/predict')
+@app.route('/api/club/predict', methods=['POST'])
 def club_predict():
-    # Mendapatkan parameter liga dan id tim dari query string
-    league = 1
-    firstteam_choice = 1
-    secondteam_choice = 2
+    try:
+        # Parse the JSON data from the client
+        data = request.json
+        ID_Club1 = data.get('ID_Club1')
+        ID_Club2 = data.get('ID_Club2')
+        ID_Liga = data.get('ID_Liga')
 
-    # Membaca data sesuai liga
-    if league == 1:
-        epl_data = pd.read_csv('data/EPL_data.csv')
-    elif league == 5:
-        epl_data = pd.read_csv('data/Bundesliga_data.csv')
-    elif league == 3:
-        epl_data = pd.read_csv('data/Serie_A_data.csv')
-    elif league == 4:
-        epl_data = pd.read_csv('data/League_1_data.csv')
-    elif league == 2:
-        epl_data = pd.read_csv('data/La_Liga_data.csv')
-    else:
-        return jsonify({'error': 'Invalid league'}), 400
+        # Ensure the necessary data is provided
+        if not all([ID_Club1, ID_Club2, ID_Liga]):
+            return jsonify({'error': 'Missing data'}), 400
 
-    # Tim yang dipilih
-    teams_of_interest = [firstteam_choice, secondteam_choice]
+        # Read data based on the league
+        if ID_Liga == 1:
+            league_data = pd.read_csv('data/EPL_data.csv')
+        elif ID_Liga == 5:
+            league_data = pd.read_csv('data/Bundesliga_data.csv')
+        elif ID_Liga == 3:
+            league_data = pd.read_csv('data/Serie_A_data.csv')
+        elif ID_Liga == 4:
+            league_data = pd.read_csv('data/League_1_data.csv')
+        elif ID_Liga == 2:
+            league_data = pd.read_csv('data/La_Liga_data.csv')
+        else:
+            return jsonify({'error': 'Invalid league'}), 400
 
-    # Ekstrak nama klub
-    teams = [epl_data[epl_data["ID_Club"] == firstteam_choice]["Club"].values[0],
-             epl_data[epl_data["ID_Club"] == secondteam_choice]["Club"].values[0]]
+        # Extract club names and average points
+        try:
+            teams = [league_data[league_data["ID_Club"] == ID_Club1]["Club"].values[0],
+                     league_data[league_data["ID_Club"] == ID_Club2]["Club"].values[0]]
+            pts = [league_data.loc[league_data["ID_Club"] == ID_Club1, "AVG"].values[0],
+                   league_data.loc[league_data["ID_Club"] == ID_Club2, "AVG"].values[0]]
+        except IndexError:
+            return jsonify({'error': 'Club not found'}), 404
 
-    # Ekstrak poin rata-rata (AVG) untuk masing-masing tim
-    pts = [epl_data.loc[epl_data["ID_Club"] == firstteam_choice, "AVG"].values[0],
-           epl_data.loc[epl_data["ID_Club"] == secondteam_choice, "AVG"].values[0]]
+        # Prepare data for prediction
+        data = {
+            'Club': teams,
+            'PTS': pts
+        }
 
-    data = {
-        'Club': teams,
-        'PTS': pts
-    }
+        # Create DataFrame and calculate win probability
+        df = pd.DataFrame(data)
+        total_pts = df['PTS'].sum()
+        df['Win_Probability'] = (df['PTS'] / total_pts * 100).round(0).astype(int).astype(str) + '%'
 
-    # Membuat DataFrame
-    df = pd.DataFrame(data)
+        # Return results as JSON
+        return jsonify(df[['Club', 'Win_Probability']].to_dict(orient='records'))
 
-    # Menghitung total poin
-    total_pts = df['PTS'].sum()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    # Menghitung probabilitas menang
-    df['Win_Probability'] = df['PTS'] / total_pts * 100
-
-    # Format probabilitas menang menjadi integer dengan tanda persen
-    df['Win_Probability'] = df['Win_Probability'].round(0).astype(int).astype(str) + '%'
-
-    # Return hasil dalam bentuk JSON
-    return jsonify(df[['Club', 'Win_Probability']].to_dict(orient='records'))
 
 
 @app.route('/api/league/get')
