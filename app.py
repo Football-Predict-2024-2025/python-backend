@@ -75,13 +75,13 @@ def club_predict():
     total_pts = df['PTS'].sum()
 
     # Calculate win probabilities
-    df['Win Probability'] = df['PTS'] / total_pts * 100
+    df['Win_Probability'] = df['PTS'] / total_pts * 100
 
     # Format win probabilities as integers with a percent sign
-    df['Win Probability'] = df['Win Probability'].round(0).astype(int).astype(str) + '%'
+    df['Win_Probability'] = df['Win_Probability'].round(0).astype(int).astype(str) + '%'
 
     # Return the results as JSON
-    return jsonify(df[['Club', 'Win Probability']].to_dict(orient='records'))
+    return jsonify(df[['Club', 'Win_Probability']].to_dict(orient='records'))
 
 
 @app.route('/api/league/get')
